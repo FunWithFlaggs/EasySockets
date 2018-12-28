@@ -2,7 +2,7 @@
 //  socket.cpp
 //  EasySockets
 //
-//  Created by Marc Mendelson on 27.12.18.
+//  Created by Ezra Knobloch on 27.12.18.
 //  Copyright © 2018 Ezra Knobloch. All rights reserved.
 //
 
