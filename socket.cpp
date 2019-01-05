@@ -692,7 +692,7 @@ int E_Server::E_Processing_Expand(int Size){
     }
     else if(this->E_Processing_Len != 0 && this->E_Processing_Threads != NULL){
         
-        void* ptr = realloc(this->E_Processing_Threads, this->E_Processing_Len + Size);
+        void* ptr = realloc(this->E_Processing_Threads, (this->E_Processing_Len + Size) * sizeof(E_Thread)); // fixed: size now computed correctly
         
         if(ptr == NULL){
             this->E_Processing_Lock = false;
@@ -799,7 +799,7 @@ int E_Server::E_Processing_Shrink(){
         }
     }
     
-    while(used % 8 != 0){
+    while(used % 8 != 0 || used == 0){ // fixed: minimum array length is 8, else realloc() could get passed size 0.
         used++;
     }
     
@@ -994,7 +994,7 @@ void* E_Server::E_Server_Run_Loop(void* data){
                         
                         if(buff != NULL){
                             
-                            void* ptr = malloc(sizeof(bool));
+                            void* ptr = malloc(sizeof(bool)); // TOFIX: bad access
                             if(ptr != NULL){
                                 
                                 long bytes = _this->E_Clients[i].E_Client_Socket->ReadNonBlocking(buff, 512);
@@ -1067,11 +1067,19 @@ void* E_Server::E_Server_Run_Loop(void* data){
         /*
          * BEGIN cleanup arrays
          */
-        if(_this->E_Processing_Shrink() < 0 && _this->E_Server_On_Error != NULL){
-            (*_this->E_Server_On_Error)(E_SERVER_SHRINK_USERPROCESS_ERROR);
+        if(_this->E_Processing_Shrink() < 0){
+            if(_this->E_Server_On_Error != NULL){
+                (*_this->E_Server_On_Error)(E_SERVER_SHRINK_USERPROCESS_ERROR);
+            }
+            // exit here, else we get even more problems
+            _this->E_Server_Status = E_SERVER_EXITED;
         }
-        if(_this->E_Clients_Shrink() < 0 && _this->E_Server_On_Error != NULL){
-            (*_this->E_Server_On_Error)(E_SERVER_SHRINK_INTERNSOCK_ERROR);
+        if(_this->E_Clients_Shrink() < 0){
+            if(_this->E_Server_On_Error != NULL){
+                (*_this->E_Server_On_Error)(E_SERVER_SHRINK_INTERNSOCK_ERROR);
+            }
+            // exit here, else we get even more problems
+            _this->E_Server_Status = E_SERVER_EXITED;
         }
         /*
          * END cleanup arrays
